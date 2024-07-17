@@ -98,7 +98,7 @@ def plot_data_shading(data, tick_values=None, cmap=None):
     
     return 
 
-def change_capex(data, solar_change, wind_change, solar_fraction):
+def change_capex(data, solar_change, wind_change, elec_change, solar_fraction):
 
     """ Function to examine how the LCOH changes based on the CAPEX cost of renewables"""
     # Drop existing cost 
@@ -107,6 +107,7 @@ def change_capex(data, solar_change, wind_change, solar_fraction):
     # Get the proportion of cost associated with renewables
     ren_lcoh = data['levelised_cost_ren']
     total_lcoh = data['levelised_cost']
+    elec_lcoh = data['levelised_cost_elec']
 
     # Get the proportion of renewable lcoh associated with solar
     solar_costs_frac= data['solar_costs'] / data['renewables_costs']
@@ -114,8 +115,11 @@ def change_capex(data, solar_change, wind_change, solar_fraction):
     # Calculate new LCOH associated with renewables costs
     new_ren_lcoh = (1 - solar_costs_frac) * ren_lcoh * (1 + wind_change / 100) + solar_costs_frac * ren_lcoh * (1 + solar_change / 100)
 
+    # Calculate new LCOH associated with electrolyser costs
+    new_elec_lcoh = (1 + elec_change / 100) * elec_lcoh
+
     # Apply the percentage increase
-    calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh
+    calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh - elec_lcoh + new_elec_lcoh
 
     data['Calculated_LCOH'] = calculated_lcoh
     
@@ -161,6 +165,8 @@ solar_increase = st.slider(
     step = 5,
     value=[0])
 
+
+
 wind_increase = st.slider(
     'Specify the percentage change in wind CAPEX',
     min_value=-100,
@@ -168,9 +174,16 @@ wind_increase = st.slider(
     step = 5,
     value=[0])
 
+elec_increase = st.slider(
+    'Specify the percentage change in electrolyser CAPEX',
+    min_value=-100,
+    max_value=100,
+    step = 5,
+    value=[0])
+
 
 # Apply changes in solar and wind CAPEX
-PEM_data_plotting = change_capex(PEM_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], selected_sf[0])
+PEM_data_plotting = change_capex(PEM_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], elec_increase[0], selected_sf[0])
 
 # Plot the data
 plot_data_shading(PEM_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
