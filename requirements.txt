@@ -3,7 +3,10 @@ pandas
 xarray
 requests
 netcdf4
-h4netcdf
 cython
 h5df
 cartopy
+h4netcdf
+cftime
+cartopy
+pathlib
