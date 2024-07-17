@@ -6,7 +6,6 @@ netcdf4
 cython
 h5df
 cartopy
-h4netcdf
 cftime
 cartopy
 pathlib
