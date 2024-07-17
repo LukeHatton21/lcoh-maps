@@ -53,7 +53,7 @@ def plot_data_shading(data, tick_values=None, cmap=None):
     fig = plt.figure(figsize=(50, 30), facecolor="white")
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
     heatmap = ax.pcolormesh(longitudes, latitudes, values, norm=colors.SymLogNorm(vmin = tick_values[0], vmax=tick_values[-1], linscale
-=1, linthresh=1), transform=ccrs.PlateCarree(), cmap=cmap)
+=1, linthresh=0.5), transform=ccrs.PlateCarree(), cmap=cmap)
         
     axins = inset_axes(
     ax,
@@ -173,8 +173,7 @@ wind_increase = st.slider(
 PEM_data_plotting = change_capex(PEM_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], selected_sf[0])
 
 # Plot the data
-plot_data_shading(PEM_data_plotting['Calculated_LCOH'], tick_values=[3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
-plot_data_shading(PEM_data['levelised_cost'].sel(solar_fraction=selected_sf[0]), tick_values=[3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
+plot_data_shading(PEM_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
 
 
 #
