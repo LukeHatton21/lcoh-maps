@@ -22,7 +22,7 @@ st.set_page_config(
 # -----------------------------------------------------------------------------
 # Declare some useful functions.
 
-@st.cache_data
+@st.cache_resource
 def get_input_pem_data():
     """ Import the original LCOH datafile in a NetCDF format
     
@@ -42,7 +42,7 @@ def get_input_pem_data():
 
     return data_file
 
-
+@st.cache_resource
 def get_input_alk_data():
     """ Import the original LCOH ALK datafile in a NetCDF format
     
@@ -61,6 +61,7 @@ def get_input_alk_data():
     data_file = xr.open_dataset(Path(__file__).parent/file_path)
 
     return data_file
+
 
 def plot_data_shading(data, tick_values=None, cmap=None):      
     
@@ -118,18 +119,19 @@ def plot_data_shading(data, tick_values=None, cmap=None):
     
     return 
 
-def change_capex(data, solar_change, wind_change, solar_fraction):
+@st.cache_data
+def change_capex(_data, solar_change, wind_change, solar_fraction):
 
     """ Function to examine how the LCOH changes based on the CAPEX cost of renewables"""
     # Drop existing cost 
-    data = data.drop_vars("Calculated_LCOH")
+    _data = _data.drop_vars("Calculated_LCOH")
     
     # Get the proportion of cost associated with renewables
-    ren_lcoh = data['levelised_cost_ren']
-    total_lcoh = data['levelised_cost']
+    ren_lcoh = _data['levelised_cost_ren']
+    total_lcoh = _data['levelised_cost']
 
     # Get the proportion of renewable lcoh associated with solar
-    solar_costs_frac= data['solar_costs'] / data['renewables_costs']
+    solar_costs_frac= _data['solar_costs'] / _data['renewables_costs']
     
     # Calculate new LCOH associated with renewables costs
     new_ren_lcoh = (1 - solar_costs_frac) * ren_lcoh * (1 + wind_change / 100) + solar_costs_frac * ren_lcoh * (1 + solar_change / 100)
@@ -137,16 +139,17 @@ def change_capex(data, solar_change, wind_change, solar_fraction):
     # Apply the percentage increase
     calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh
 
-    data['Calculated_LCOH'] = calculated_lcoh
+    _data['Calculated_LCOH'] = calculated_lcoh
     
-    return data
+    return _data
 
-def get_selected_tech(PEM_data, ALK_data, selected_tech=None):
+@st.cache_data
+def get_selected_tech(_PEM_data, _ALK_data, selected_tech=None):
 
-    selected_data = PEM_data
+    selected_data = _PEM_data
 
     if selected_tech == "Alkaline":
-        selected_data = ALK_data
+        selected_data = _ALK_data
 
     return selected_data
 
@@ -206,7 +209,6 @@ wind_increase = st.slider(
 
 
 # Select the given technology
-st.write(selected_tech)
 selected_data = get_selected_tech(PEM_data, ALK_data, selected_tech=selected_tech)
 selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
