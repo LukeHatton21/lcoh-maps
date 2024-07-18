@@ -23,7 +23,7 @@ st.set_page_config(
 # Declare some useful functions.
 
 @st.cache_data
-def get_input_data():
+def get_input_pem_data():
     """ Import the original LCOH datafile in a NetCDF format
     
     
@@ -32,6 +32,26 @@ def get_input_data():
 
     # Path to save the downloaded file
     file_path = 'PEM_COLLATED_RESULTS.nc'
+
+    # Download the file
+    response = requests.get(storage_link)
+    with open(file_path, 'wb') as file:
+        file.write(response.content)
+    
+    data_file = xr.open_dataset(Path(__file__).parent/file_path)
+
+    return data_file
+
+
+def get_input_alk_data():
+    """ Import the original LCOH ALK datafile in a NetCDF format
+    
+    
+    Read the data in from Google Cloud and load onto the webpage"""
+    storage_link = "https://storage.googleapis.com/example-bucket-lcoh-map/ALK_COLLATED_RESULTS.nc"
+
+    # Path to save the downloaded file
+    file_path = 'ALK_COLLATED_RESULTS.nc'
 
     # Download the file
     response = requests.get(storage_link)
@@ -98,7 +118,7 @@ def plot_data_shading(data, tick_values=None, cmap=None):
     
     return 
 
-def change_capex(data, solar_change, wind_change, elec_change, solar_fraction):
+def change_capex(data, solar_change, wind_change, solar_fraction):
 
     """ Function to examine how the LCOH changes based on the CAPEX cost of renewables"""
     # Drop existing cost 
@@ -107,7 +127,6 @@ def change_capex(data, solar_change, wind_change, elec_change, solar_fraction):
     # Get the proportion of cost associated with renewables
     ren_lcoh = data['levelised_cost_ren']
     total_lcoh = data['levelised_cost']
-    elec_lcoh = data['levelised_cost_elec']
 
     # Get the proportion of renewable lcoh associated with solar
     solar_costs_frac= data['solar_costs'] / data['renewables_costs']
@@ -115,18 +134,25 @@ def change_capex(data, solar_change, wind_change, elec_change, solar_fraction):
     # Calculate new LCOH associated with renewables costs
     new_ren_lcoh = (1 - solar_costs_frac) * ren_lcoh * (1 + wind_change / 100) + solar_costs_frac * ren_lcoh * (1 + solar_change / 100)
 
-    # Calculate new LCOH associated with electrolyser costs
-    new_elec_lcoh = (1 + elec_change / 100) * elec_lcoh
-
     # Apply the percentage increase
-    calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh - elec_lcoh + new_elec_lcoh
+    calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh
 
     data['Calculated_LCOH'] = calculated_lcoh
     
     return data
 
+def get_selected_tech(PEM_data, ALK_data, selected_tech=None):
 
-PEM_data = get_input_data()
+    selected_data = PEM_data
+
+    if selected_tech == "Alkaline":
+        selected_data = ALK_data
+
+    return selected_data
+
+
+PEM_data = get_input_pem_data()
+ALK_data = get_input_alk_data()
 # -----------------------------------------------------------------------------
 # Draw the actual page
 
@@ -149,7 +175,12 @@ resolution.
 ''
 ''
 
-PEM_data['Calculated_LCOH'] = PEM_data['levelised_cost']
+
+
+selected_tech = st.select_slider(
+    "Specify the Electrolyser Technology", 
+    options={"PEM", "Alkaline"},
+    value="PEM")
 
 selected_sf = st.slider(
     'Specify the Solar Fraction (percentage of renewable capacity met by solar)',
@@ -165,8 +196,6 @@ solar_increase = st.slider(
     step = 5,
     value=[0])
 
-
-
 wind_increase = st.slider(
     'Specify the percentage change in wind CAPEX',
     min_value=-100,
@@ -174,19 +203,19 @@ wind_increase = st.slider(
     step = 5,
     value=[0])
 
-elec_increase = st.slider(
-    'Specify the percentage change in electrolyser CAPEX',
-    min_value=-100,
-    max_value=100,
-    step = 5,
-    value=[0])
+
+
+# Select the given technology
+st.write(selected_tech)
+selected_data = get_selected_tech(PEM_data, ALK_data, selected_tech=selected_tech)
+selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
 
 # Apply changes in solar and wind CAPEX
-PEM_data_plotting = change_capex(PEM_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], elec_increase[0], selected_sf[0])
+selected_data_plotting = change_capex(selected_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], selected_sf[0])
 
 # Plot the data
-plot_data_shading(PEM_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
+plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
 
 
 #
