@@ -120,7 +120,7 @@ def plot_data_shading(data, tick_values=None, cmap=None):
     return 
 
 @st.cache_data
-def change_capex(_data, solar_change, wind_change, solar_fraction):
+def change_capex(_data, solar_change, wind_change, elec_change, solar_fraction):
 
     """ Function to examine how the LCOH changes based on the CAPEX cost of renewables"""
     # Drop existing cost 
@@ -128,6 +128,7 @@ def change_capex(_data, solar_change, wind_change, solar_fraction):
     
     # Get the proportion of cost associated with renewables
     ren_lcoh = _data['levelised_cost_ren']
+    elec_lcoh = _data['levelised_cost_elec']
     total_lcoh = _data['levelised_cost']
 
     # Get the proportion of renewable lcoh associated with solar
@@ -135,9 +136,10 @@ def change_capex(_data, solar_change, wind_change, solar_fraction):
     
     # Calculate new LCOH associated with renewables costs
     new_ren_lcoh = (1 - solar_costs_frac) * ren_lcoh * (1 + wind_change / 100) + solar_costs_frac * ren_lcoh * (1 + solar_change / 100)
-
+    new_elec_lcoh = elec_lcoh * ( 1 + elec_change / 100)
+    
     # Apply the percentage increase
-    calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh
+    calculated_lcoh = total_lcoh - ren_lcoh + new_ren_lcoh - elec_lcoh + new_elec_lcoh
 
     _data['Calculated_LCOH'] = calculated_lcoh
     
@@ -206,6 +208,14 @@ wind_increase = st.slider(
     step = 5,
     value=[0])
 
+elec_increase = st.slider(
+    'Specify the percentage change in electrolyser CAPEX',
+    min_value=-100,
+    max_value=100,
+    step = 5,
+    value=[0])
+
+
 
 
 # Select the given technology
@@ -214,7 +224,7 @@ selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
 
 # Apply changes in solar and wind CAPEX
-selected_data_plotting = change_capex(selected_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], selected_sf[0])
+selected_data_plotting = change_capex(selected_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], elec_increase[0], selected_sf[0])
 
 # Plot the data
 plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
