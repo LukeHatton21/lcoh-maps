@@ -247,7 +247,7 @@ selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 selected_data_plotting = change_capex(selected_data.sel(solar_fraction=selected_sf[0], latitude=slice(start_lat, end_lat), longitude=slice(start_lon, end_lon)), solar_increase[0], wind_increase[0], elec_increase[0], selected_sf[0])
 
 # Plot the data
-plot_data_shading(selected_data_plotting['Calculated_LCOH'].sel(latitude=slice(start_lat, end_lat), longitude=slice(start_lon, end_lon), tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
+plot_data_shading(selected_data_plotting['Calculated_LCOH'].sel(latitude=slice(start_lat, end_lat), longitude=slice(start_lon, end_lon)), tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
 
 
 #
