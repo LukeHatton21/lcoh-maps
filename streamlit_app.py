@@ -175,10 +175,15 @@ resolution.
 
 Initial Cost Assumptions are included below:
 PEM Electrolyser Cost: US$2000/kW
+
 Alkaline Electrolyser Cost: US$1700/kW
+
 Solar Cost: US$990/kW
+
 Onshore Wind Cost: US$1500/kW
+
 Offshore Wind Cost: Relationships for foundations and grid connection costs were taken from https://doi.org/10.1016/j.energy.2019.116357 
+
 Cost of Capital: Set by country and taken from IRENA's The Cost of Financing for Renewable Power 2023 Report. 
 
 '''
