@@ -234,8 +234,8 @@ start_lat, end_lat = st.slider(
 
 start_lon, end_lon = st.slider(
     "Select the longitude range", 
-    -175, 175, 
-    (-175, 175))
+    -180, 180, 
+    (-180, 180))
 
 
 # Select the given technology
