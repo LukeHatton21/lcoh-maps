@@ -187,6 +187,8 @@ Offshore Wind Cost: Relationships for foundations and grid connection costs were
 
 Cost of Capital: Set by country and taken from IRENA's The Cost of Financing for Renewable Power 2023 Report. 
 
+Modifications to the assumptions can be made below using the slides but should be made one by one, otherwise the visualisation / processing can't keep up and the webtool may break :-)
+
 '''
 
 # Add some spacing
