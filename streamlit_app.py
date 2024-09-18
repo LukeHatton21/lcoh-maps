@@ -174,6 +174,7 @@ College London to determine the LCOH at a gridpoint
 resolution.
 
 Initial Cost Assumptions are included below:
+
 PEM Electrolyser Cost: US$2000/kW
 
 Alkaline Electrolyser Cost: US$1700/kW
