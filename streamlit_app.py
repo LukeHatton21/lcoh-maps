@@ -170,9 +170,16 @@ onshore wind.
 
 Solar and wind power capacity factors have been generated from NASA's MERRA-2
 dataset, which have been used in a technoeconomic model developed at Imperial 
-College London with assumptions over cost to determine the LCOH at a gridpoint
+College London to determine the LCOH at a gridpoint
 resolution.
 
+Initial Cost Assumptions are included below:
+PEM Electrolyser Cost: US$2000/kW
+Alkaline Electrolyser Cost: US$1700/kW
+Solar Cost: US$990/kW
+Onshore Wind Cost: US$1500/kW
+Offshore Wind Cost: Relationships for foundations and grid connection costs were taken from https://doi.org/10.1016/j.energy.2019.116357 
+Cost of Capital: Set by country and taken from IRENA's The Cost of Financing for Renewable Power 2023 Report. 
 
 '''
 
@@ -215,7 +222,15 @@ elec_increase = st.slider(
     step = 5,
     value=[0])
 
+start_lat, end_lat = st.slider(
+    "Select the latitude range", 
+    -60, 90, 
+    (-60, 90))
 
+start_lon, end_lon = st.slider(
+    "Select the longitude range", 
+    -175, 175, 
+    (-175, 175))
 
 
 # Select the given technology
@@ -224,7 +239,7 @@ selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
 
 # Apply changes in solar and wind CAPEX
-selected_data_plotting = change_capex(selected_data.sel(solar_fraction=selected_sf[0]), solar_increase[0], wind_increase[0], elec_increase[0], selected_sf[0])
+selected_data_plotting = change_capex(selected_data.sel(solar_fraction=selected_sf[0]), latitude=slice(start_lat, end_lat), longitude=slice(start_lon, end_lon)), solar_increase[0], wind_increase[0], elec_increase[0], selected_sf[0])
 
 # Plot the data
 plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
