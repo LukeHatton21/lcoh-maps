@@ -295,7 +295,7 @@ with tab3:
     selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
     # Apply changes in CAPEX
-    selected_data_plotting, flag = change_capex_absolute(selected_data.sel(solar_fraction=selected_sf), solar_capex, wind_capex, elec_capex, initial_capex)
+    selected_data_plotting = change_capex_absolute(selected_data.sel(solar_fraction=selected_sf), solar_capex, wind_capex, elec_capex, initial_capex)
 
 
 with tab4: 
