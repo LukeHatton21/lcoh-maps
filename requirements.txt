@@ -9,3 +9,5 @@ cartopy
 cftime
 cartopy
 pathlib
+streamlit_folium
+folium
