@@ -316,7 +316,7 @@ with tab5:
     progress_text = "Generating interactive LCOH map. Please wait."
     my_interactive_bar = st.progress(0, text=progress_text)
     for percent_complete in range(100):
-        time.sleep(0.33)
+        time.sleep(0.7)
         my_interactive_bar.progress(percent_complete + 1, text=progress_text)
     
     map_obj = show_map(selected_data_plotting)
