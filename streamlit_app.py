@@ -246,8 +246,11 @@ def display_netcdf_map(ds, variable_name):
 
 def show_map(selected_data_plotting):
 
+    # Rename
+    selected_data_plotting = selected_data_plotting.rename({'Calculated_LCOH':'LCOH (USD/kg)')
+    
     # Get map
-    map = display_netcdf_map(selected_data_plotting, 'Calculated_LCOH')
+    map = display_netcdf_map(selected_data_plotting, 'LCOH (USD/kg)')
 
     # Save in the session state
     st.session_state.map = map
