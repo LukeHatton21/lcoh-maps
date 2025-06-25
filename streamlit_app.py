@@ -5,8 +5,11 @@ import xarray as xr
 import math
 import time
 import netCDF4
+import leafmap.foliumap as leafmap
 import numpy as np
 import cftime
+import rioxarray
+import branca.colormap as bcm
 from pathlib import Path
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
@@ -175,8 +178,6 @@ def change_capex_absolute(_data, solar_capex, wind_capex, elec_capex, initial_ca
 
     _data['Calculated_LCOH'] = calculated_lcoh
 
-    # Return flag
-    flag = True
     
     return _data
 
@@ -190,9 +191,84 @@ def get_selected_tech(_PEM_data, _ALK_data, selected_tech=None):
 
     return selected_data
 
+with st.spinner("Downloading underlying data from the server"):
+    PEM_data = get_input_pem_data()
+    ALK_data = get_input_alk_data()
 
-PEM_data = get_input_pem_data()
-ALK_data = get_input_alk_data()
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+import folium
+from folium.raster_layers import ImageOverlay
+import branca.colormap as bcm
+from PIL import Image
+
+def display_netcdf_map_with_overlay(ds, variable_name):
+    var = ds[variable_name]
+    lat = var.latitude.values
+    lon = var.longitude.values
+    data = var.values
+
+    # Normalize and colormap
+    vmin, vmax = 0.01, 10
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.get_cmap("YlOrRd")
+
+    # Apply colormap
+    rgba_img = cmap(norm(data))      # shape: (lat, lon, 4)
+    rgba_img = np.flipud(rgba_img)   # Flip vertically for correct geospatial orientation
+    rgba_img = (rgba_img * 255).astype(np.uint8)
+
+    # Compute geographic aspect ratio
+    lat_range = lat.max() - lat.min()
+    lon_range = lon.max() - lon.min()
+    geo_aspect_ratio = lon_range / lat_range
+
+    # Resize image to match geographic ratio
+    height, width = data.shape
+    target_width = int(height * geo_aspect_ratio)
+
+    img = Image.fromarray(rgba_img)
+    img = img.resize((target_width, height), Image.BILINEAR)
+
+    # Save or convert to base64 as needed
+    img.save("overlay.png")
+
+    # Define bounds: [[south, west], [north, east]]
+    bounds = [[lat.min(), lon.min()], [lat.max(), lon.max()]]
+
+    # Create map
+    #m = folium.Map(location=[lat.mean(), lon.mean()], zoom_start=2, tiles='CartoDB positron', control_scale=True)
+    m = folium.Map(
+    location=[lat.mean(), lon.mean()],
+    tiles='CartoDB positron',
+    control_scale=True)
+
+    # Fit the map to the bounds
+    m.fit_bounds(bounds)
+
+    # Add image overlay
+    ImageOverlay(
+        name=variable_name,
+        image="overlay.png",
+        bounds=bounds,
+        opacity=0.8,
+        interactive=True,
+        cross_origin=False
+    ).add_to(m)
+
+    # Add color scale
+    linear_colormap = bcm.LinearColormap(
+        [colors.to_hex(cmap(i)) for i in np.linspace(0, 1, 256)],
+        vmin=vmin, vmax=vmax
+    ).to_step(5)
+    linear_colormap.caption = f'{variable_name} (USD/kg)'
+    m.add_child(linear_colormap)
+
+    return m
+
+
 
 def display_netcdf_map(ds, variable_name):
 
@@ -234,7 +310,7 @@ def display_netcdf_map(ds, variable_name):
     # Optional: Add color scale as legend
     colormap = cm.ScalarMappable(norm=norm, cmap=cmap)
     colormap._A = []
-    import branca.colormap as bcm
+
     linear_colormap = bcm.LinearColormap(
         [colors.to_hex(cmap(i)) for i in np.linspace(0, 1, 256)],
         vmin=vmin, vmax=vmax
@@ -247,14 +323,28 @@ def display_netcdf_map(ds, variable_name):
 def show_map(selected_data_plotting):
 
     # Rename
-    selected_data_plotting = selected_data_plotting.rename({'Calculated_LCOH':'LCOH (USD/kg)'})
+    selected_data_plotting = selected_data_plotting.rename(name_dict={"Calculated_LCOH":"LCOH (USD/kg):"})
     
     # Get map
-    map = display_netcdf_map(selected_data_plotting, 'LCOH (USD/kg)')
+    map = display_netcdf_map(selected_data_plotting, 'LCOH (USD/kg):')
 
     # Save in the session state
     st.session_state.map = map
     folium_static(st.session_state.map)
+
+def show_map_overlay(selected_data_plotting):
+
+    # Rename
+    selected_data_plotting = selected_data_plotting.rename(name_dict={"Calculated_LCOH":"LCOH (USD/kg):"})
+    
+    # Get map
+    map = display_netcdf_map_with_overlay(selected_data_plotting, 'LCOH (USD/kg):')
+
+    # Save in the session state
+    st.session_state.map = map
+    folium_static(st.session_state.map)
+
+  
 
 
 # -----------------------------------------------------------------------------
@@ -280,9 +370,9 @@ with tab2:
 
 with tab3:
     st.header("Inputs")
+    selected_sf = st.slider('Specify the Solar Fraction (percentage of renewable capacity met by solar)', min_value=0, max_value=100, step=10, value=50)
     selected_tech = st.selectbox("Electrolyser Technology", options={"PEM", "Alkaline"})
-    selected_sf = st.number_input('Specify the Solar Fraction (percentage of renewable capacity met by solar)', min_value=0, max_value=100, step=10, value=50)
-
+    
     # Specify cost inputs
     solar_capex = st.number_input('Specify the global solar CAPEX (USD/kW)', min_value=100, max_value=2000, step=100, value=990)
     wind_capex = st.number_input('Specify the global wind CAPEX (USD/kW)', min_value=100, max_value=2000, step=100, value=1500)
@@ -297,29 +387,65 @@ with tab3:
     selected_data = get_selected_tech(PEM_data, ALK_data, selected_tech=selected_tech)
     selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
+
+    # ---- PLACE THIS BLOCK IMMEDIATELY AFTER ----
+    if 'last_inputs' not in st.session_state:
+        st.session_state.last_inputs = {
+            "elec_tech": None,
+            "solar_frac": None,
+            "solar": None,
+            "wind": None,
+            "elec": None,
+            "initial": None
+        }
+
+    if 'capex_updated' not in st.session_state:
+        st.session_state.capex_updated = False
+
+    current_inputs = {
+        "elec_tech": selected_tech,
+        "solar_frac":  selected_sf,
+        "solar": solar_capex,
+        "wind": wind_capex,
+        "elec": elec_capex,
+        "initial": initial_capex
+    }
+    inputs_changed = current_inputs != st.session_state.last_inputs
+
+    if current_inputs != st.session_state.last_inputs:
+        st.session_state.last_inputs = current_inputs.copy()
+        st.session_state.capex_updated = True
+        with st.spinner("Applying updated cost parameters to the data. Please wait"):
+            time.sleep(1)
+            selected_data_plotting = change_capex_absolute(
+            selected_data.sel(solar_fraction=selected_sf),
+            solar_capex, wind_capex, elec_capex, initial_capex
+        )
+            st.session_state.selected_data_plotting = selected_data_plotting
+    else:
+        st.session_state.capex_updated = False
+        selected_data_plotting = st.session_state.get("selected_data_plotting", None)
+
+
     # Apply changes in CAPEX
-    selected_data_plotting = change_capex_absolute(selected_data.sel(solar_fraction=selected_sf), solar_capex, wind_capex, elec_capex, initial_capex)
+    #with st.spinner("Applying updated cost parameters to the data. Please wait"):
+        #selected_data_plotting = change_capex_absolute(selected_data.sel(solar_fraction=selected_sf), solar_capex, wind_capex, elec_capex, initial_capex)
 
 
 with tab4: 
-    st.header("Global LCOH Distribution")
-    progress_text = "Generating static LCOH map. Please wait."
-    my_bar = st.progress(0, text=progress_text)
-
-    for percent_complete in range(100):
-        time.sleep(0.25)
-        my_bar.progress(percent_complete + 1, text=progress_text)
-
-
-    plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
-with tab5:
-    progress_text = "Generating interactive LCOH map. Please wait."
-    my_interactive_bar = st.progress(0, text=progress_text)
-    for percent_complete in range(100):
-        time.sleep(0.7)
-        my_interactive_bar.progress(percent_complete + 1, text=progress_text)
+    if st.session_state.capex_updated and selected_data_plotting is not None:
+        with st.spinner("Generating static LCOH map. Please wait"):
+        #show_map_overlay(selected_data_plotting)
+            plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
     
-    map_obj = show_map(selected_data_plotting)
+
+with tab5:
+    if st.session_state.capex_updated and selected_data_plotting is not None:
+        with st.spinner("Generating interactive LCOH map. Please wait"):
+            show_map(selected_data_plotting)
+    
+
+
 
 
 
