@@ -5,10 +5,8 @@ import xarray as xr
 import math
 import time
 import netCDF4
-import leafmap.foliumap as leafmap
 import numpy as np
 import cftime
-import rioxarray
 import branca.colormap as bcm
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -387,7 +385,6 @@ with tab3:
     selected_data = get_selected_tech(PEM_data, ALK_data, selected_tech=selected_tech)
     selected_data['Calculated_LCOH'] = selected_data['levelised_cost']
 
-
     # ---- PLACE THIS BLOCK IMMEDIATELY AFTER ----
     if 'last_inputs' not in st.session_state:
         st.session_state.last_inputs = {
@@ -426,23 +423,15 @@ with tab3:
         st.session_state.capex_updated = False
         selected_data_plotting = st.session_state.get("selected_data_plotting", None)
 
-
-    # Apply changes in CAPEX
-    #with st.spinner("Applying updated cost parameters to the data. Please wait"):
-        #selected_data_plotting = change_capex_absolute(selected_data.sel(solar_fraction=selected_sf), solar_capex, wind_capex, elec_capex, initial_capex)
-
-
 with tab4: 
-    if st.session_state.capex_updated and selected_data_plotting is not None:
-        with st.spinner("Generating static LCOH map. Please wait"):
+    with st.spinner("Generating static LCOH map. Please wait"):
         #show_map_overlay(selected_data_plotting)
-            plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
+        plot_data_shading(selected_data_plotting['Calculated_LCOH'], tick_values=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cmap="YlOrRd")
     
 
 with tab5:
-    if st.session_state.capex_updated and selected_data_plotting is not None:
-        with st.spinner("Generating interactive LCOH map. Please wait"):
-            show_map(selected_data_plotting)
+    with st.spinner("Generating interactive LCOH map. Please wait"):
+        show_map(selected_data_plotting)
     
 
 
